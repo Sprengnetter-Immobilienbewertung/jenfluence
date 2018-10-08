@@ -1,5 +1,4 @@
 package de.sprengnetter.jenkins.plugins.jenfluence.service;
-
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,14 +26,14 @@ public final class ContentService extends BaseService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ContentService.class);
 
-    private static final String CONTENT_RESOURCE = "/content";
+    private static final String CONTENT_RESOURCE             = "/content";
     private static final String ATTACHMENT_RESOURCE_TEMPLATE = "%s/%s/child/attachment";
-    private static final String EXPAND_BODY_TEMPLATE = "/%s?expand=body.storage";
+    private static final String EXPAND_BODY_TEMPLATE         = "/%s?expand=body.storage";
 
-    private static final String SPACE_KEY_QUERY_PARAM = "spaceKey";
-    private static final String LIMIT_KEY_QUERY_PARAM = "limit";
-    private static final String TITLE_KEY_QUERY_PARAM = "title";
-    private static final String EXPAND_KEY_QUERY_PARAM = "expand";
+    private static final String SPACE_KEY_QUERY_PARAM    = "spaceKey";
+    private static final String LIMIT_KEY_QUERY_PARAM    = "limit";
+    private static final String TITLE_KEY_QUERY_PARAM    = "title";
+    private static final String EXPAND_KEY_QUERY_PARAM   = "expand";
     private static final String EXPAND_QUERY_PARAM_VALUE = "version";
 
     private final ObjectMapper objectMapper;
@@ -111,8 +110,13 @@ public final class ContentService extends BaseService {
 
     private String guessMediaType(final File file) {
         try {
-            return Files.probeContentType(Paths.get(file.getAbsolutePath()));
-        } catch (IOException e) {
+            String mediaType = Files.probeContentType(Paths.get(file.getAbsolutePath()));
+            if (mediaType == null || mediaType.isEmpty()) {
+                throw new IllegalStateException(String.format("Cannot guess the media type of file %s", file.getAbsolutePath()));
+            }
+            return mediaType;
+        } catch (IOException | IllegalStateException e) {
+            LOGGER.info("Failed to determine the media type of file {}. Using a wildcard instead", file.getAbsolutePath(), e);
             return "*/*";
         }
     }
@@ -120,7 +124,7 @@ public final class ContentService extends BaseService {
     private PageCreated modifyPage(final Page page, final String httpMethod) {
         try {
             RequestBody body = RequestBody.create(com.squareup.okhttp.MediaType.parse(MediaType.APPLICATION_JSON),
-                    this.objectMapper.writeValueAsString(page));
+                                                  this.objectMapper.writeValueAsString(page));
             Request request;
             //Build request based on the HTTP-Method
             if (HttpMethod.POST.equals(httpMethod)) {
