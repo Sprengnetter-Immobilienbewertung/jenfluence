@@ -6,6 +6,8 @@ import de.sprengnetter.jenkins.plugins.jenfluence.service.ContentService;
 import de.sprengnetter.jenkins.plugins.jenfluence.step.AbstractStepExecution;
 import de.sprengnetter.jenkins.plugins.jenfluence.step.descriptor.CreatePageStep;
 import org.jenkinsci.plugins.workflow.steps.StepContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
 
@@ -15,6 +17,8 @@ import java.util.Collections;
  * Execution implementation of the step "createPage".
  */
 public class CreatePageExecution extends AbstractStepExecution<PageCreated, CreatePageStep> {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CreatePageExecution.class);
 
     private static final long serialVersionUID = 7220386183041962984L;
 
@@ -68,7 +72,8 @@ public class CreatePageExecution extends AbstractStepExecution<PageCreated, Crea
 
         Ancestor ancestor = new Ancestor();
 
-        switch (getStep().getBy().getValue().toLowerCase()) {
+        try {
+            switch (getStep().getBy().getValue().toLowerCase()) {
             case "title":
                 ancestor.setId(getParentId());
                 break;
@@ -78,6 +83,10 @@ public class CreatePageExecution extends AbstractStepExecution<PageCreated, Crea
             default:
                 ancestor = null;
                 break;
+            }
+        } catch (Exception e) {
+            LOGGER.warn("An error occurred while determining the parent page. The created page will not have a parent page", e);
+            ancestor = null;
         }
 
         if (ancestor == null) {
@@ -104,7 +113,7 @@ public class CreatePageExecution extends AbstractStepExecution<PageCreated, Crea
 
         if (content.getResults().size() == 0 || content.getResults().get(0).getId() == null) {
             throw new IllegalStateException("No parent page with name " + getStep().getBy().getParentIdentifier() + " in space with key "
-                    + getStep().getSpaceKey() + " was found");
+                                            + getStep().getSpaceKey() + " was found");
         }
 
         /*
@@ -114,7 +123,7 @@ public class CreatePageExecution extends AbstractStepExecution<PageCreated, Crea
          */
         if (content.getResults().size() > 1) {
             throw new IllegalStateException("Multiple possible parent pages with the name " + getStep().getBy().getParentIdentifier()
-                    + "in space with key " + getStep().getSpaceKey() + " were found");
+                                            + "in space with key " + getStep().getSpaceKey() + " were found");
         }
         return content.getResults().get(0).getId();
     }
